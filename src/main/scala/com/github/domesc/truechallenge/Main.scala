@@ -1,10 +1,13 @@
 package com.github.domesc.truechallenge
 
 import com.databricks.spark.xml.XmlDataFrameReader
+import com.github.domesc.truechallenge.settings.ApplicationSettings
+import com.typesafe.config.ConfigFactory
 import org.apache.spark.sql.expressions.Window
 import org.apache.spark.sql.{SparkSession, functions}
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types.DoubleType
+import org.apache.spark.storage.StorageLevel
 
 import java.io.{FileInputStream, FileWriter}
 import java.util.Properties
@@ -15,58 +18,44 @@ import scala.io.Source
 
 object Main extends App {
   val sparkSession = SparkSession.builder().master( "local[*]" ).getOrCreate()
+
+  val applicationSettings = ApplicationSettings(ConfigFactory.load())
+
   val moviesMetadata = sparkSession.read
     .option( "header", "true" )
     .option("inferSchema", "true")
     .option("escape", "\"")
-    .csv( "movies_metadata.csv")
-  /*val wiki = sparkSession.read
+    .csv(applicationSettings.moviesPath)
+
+  val wiki = sparkSession.read
     .option("rowTag", "doc")
-    .xml("enwiki-latest-abstract.xml")
+    .xml(applicationSettings.wikiPath)
     .select("title", "url", "abstract")
     .withColumn("title", regexp_replace(col("title"), "Wikipedia: ", ""))
 
-  wiki.write.option("header", "true").option("delimiter", "|").csv("wiki.csv")*/
+/*
+  wiki.write.option("header", "true").option("delimiter", "|").csv("wiki.csv")
   val wiki = sparkSession.read
     .option( "header", "true" )
     .option("delimiter", "|")
-    .csv( "wiki.csv" )
+    .csv(applicationSettings.wikiPath) */
 
-  val moviesWithRatio = moviesMetadata
-    .withColumn("ratio", col("budget").cast(DoubleType)/col("revenue").cast(DoubleType))
-    .withColumn("year", year(col("release_date")))
+  val moviesWithRatio = TransformationFunctions.addRatioAndYearToMovies(moviesMetadata)
 
-  val resultJoined = moviesWithRatio
-    .join(wiki, Seq("title"), "left")
-    .select("title", "budget", "year", "revenue", "vote_average", "ratio", "production_companies", "url", "abstract")
+  val resultJoined = TransformationFunctions.mergeMoviesAndWiki(moviesWithRatio, wiki)
 
-  import org.apache.spark.sql.expressions.Window
-  val window = Window.partitionBy( "title").orderBy( col("ratio").desc)
-  val topThousandResults = resultJoined.sort(col("ratio").desc).limit(1000)
-
+  val topThousandResults = TransformationFunctions.computeTopByRatio(resultJoined)
 
   /* write to DB*/
+
+  DBWriter.writeToDB(topThousandResults, applicationSettings.dbSettings, "movies")
+
   val connectionProperties = new Properties()
   connectionProperties.put("user", "user")
   connectionProperties.put("password", "password")
-
-  topThousandResults.write
-    .option("driver", "org.postgresql.Driver")
-    .jdbc("jdbc:postgresql://localhost:5432/truefilm", "movies", connectionProperties)
-
   val topFromSQL = sparkSession.read
     .option("driver", "org.postgresql.Driver")
     .jdbc("jdbc:postgresql://localhost:5432/truefilm", "movies", connectionProperties)
 
   topFromSQL.show(20)
-
-
-  import sparkSession.implicits._
-  /*val moviesTotal = moviesMetadata.count()
-  val moviesUniques = moviesMetadata.select(col("imdb_id")).distinct().count()
-
-
-  moviesMetadata.printSchema()
-  val head = moviesMetadata.limit( 1 ).collect()
-  moviesMetadata.columns.zip(head).foreach{ case (m, h) => println(s"$m $h")}*/
 }
