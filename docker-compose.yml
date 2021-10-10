@@ -1,0 +1,16 @@
+version: '2'
+services:
+  postgresql12:
+    image: 'bitnami/postgresql:12'
+    ports:
+      - '5432:5432'
+    volumes:
+      - 'postgresql_data_12:/bitnami/postgresql12'
+    environment:
+      - POSTGRESQL_USERNAME=user
+      - POSTGRESQL_PASSWORD=password
+      - POSTGRESQL_DATABASE=truefilm
+      - ALLOW_EMPTY_PASSWORD=yes
+volumes:
+  postgresql_data_12:
+    driver: local
