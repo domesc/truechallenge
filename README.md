@@ -1,10 +1,10 @@
 # truechallenge
 
 ## Requirements
-Java SDK 1.8+
-sbt 1.4.3
-Docker
-docker-compose
+- Java SDK 1.8+
+- sbt 1.4.3
+- Docker
+- docker-compose
 
 ## Tests
 To run the tests you should launch
@@ -22,7 +22,7 @@ You should then download the datasets in the root of the project:
 * https://www.kaggle.com/rounakbanik/the-movies-dataset/version/7#movies_metadata.csv
 * https://dumps.wikimedia.org/enwiki/latest/enwiki-latest-abstract.xml.gz
 
-*It's advisable to extract gzipped archive, because in this way Spark will be able to split it and parallelize read and following operations.**
+**It's advisable to extract gzipped archive, because in this way Spark will be able to split it and parallelize read and following operations.**
 
 ### Run the application
 First place yourself in the root of the project and run
