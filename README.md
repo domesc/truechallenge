@@ -29,7 +29,7 @@ First place yourself in the root of the project and run
 ```
 docker-compose up
 ```
-This will run a postgresql container on localhost:55432. Once the DB is up and running you can run the application with:
+This will run a postgresql container on localhost:5432. Once the DB is up and running you can run the application with:
 ```
 sbt "runMain com.github.domesc.truechallenge.Main"
 ```
